@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ubuntu Server 22.04.5 LTS — Install &amp; Configure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --aubergine-900:#1B0012;
+  --aubergine-800:#2C001E;
+  --aubergine-700:#3D0F2C;
+  --aubergine-600:#5E2750;
+  --aubergine-500:#77216F;
+  --orange:#E95420;
+  --orange-soft:#F09B7A;
+  --warm-100:#F7F3F2;
+  --warm-300:#D6CFCC;
+  --warm-500:#A39A97;
+  --ink:#0A0006;
+  --term-bg:#12000C;
+  --term-line:rgba(233,84,32,.16);
+  --ok:#5FCF80;
+  --rail-w:264px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{height:100%}
+
+body{
+  background:
+    radial-gradient(1100px 700px at 78% -8%, rgba(119,33,111,.55), transparent 62%),
+    radial-gradient(800px 600px at 0% 100%, rgba(233,84,32,.10), transparent 60%),
+    var(--aubergine-800);
+  color:var(--warm-100);
+  font-family:'Ubuntu',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-weight:300;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+/* ---------- shell ---------- */
+.shell{display:flex;height:100vh;width:100%}
+
+/* ---------- rail ---------- */
+.rail{
+  width:var(--rail-w);
+  flex:0 0 var(--rail-w);
+  border-right:1px solid rgba(247,243,242,.09);
+  background:rgba(27,0,18,.5);
+  display:flex;flex-direction:column;
+  backdrop-filter:blur(6px);
+}
+.rail-head{padding:26px 22px 18px;border-bottom:1px solid rgba(247,243,242,.08)}
+.mark{display:flex;align-items:center;gap:10px}
+.dot-ring{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid var(--orange);position:relative;flex:0 0 22px;
+}
+.dot-ring::after{
+  content:"";position:absolute;inset:4px;border-radius:50%;background:var(--orange);
+}
+.mark-txt{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--warm-300);font-weight:500}
+.rail-sub{margin-top:12px;font-size:11px;color:var(--warm-500);letter-spacing:.06em;font-family:'Ubuntu Mono',monospace}
+
+.rail-list{flex:1;overflow-y:auto;padding:12px 0 24px;scrollbar-width:thin;scrollbar-color:var(--aubergine-600) transparent}
+.rail-list::-webkit-scrollbar{width:6px}
+.rail-list::-webkit-scrollbar-thumb{background:var(--aubergine-600);border-radius:3px}
+
+.rail-item{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:9px 22px;cursor:pointer;border:0;background:none;
+  width:100%;text-align:left;color:var(--warm-500);
+  font-family:inherit;font-size:13.5px;font-weight:300;line-height:1.35;
+  transition:color .18s ease,background .18s ease;
+  position:relative;
+}
+.rail-item:hover{color:var(--warm-100);background:rgba(247,243,242,.04)}
+.rail-item .rn{
+  font-family:'Ubuntu Mono',monospace;font-size:11px;
+  color:var(--aubergine-500);flex:0 0 22px;padding-top:2px;
+  transition:color .18s ease;
+}
+.rail-item.done .rn{color:var(--orange-soft)}
+.rail-item.active{color:#fff;background:rgba(233,84,32,.10)}
+.rail-item.active::before{
+  content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--orange);
+}
+.rail-item.active .rn{color:var(--orange)}
+.rail-item.phase{
+  pointer-events:none;padding-top:20px;padding-bottom:6px;
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--aubergine-500);font-weight:500;
+}
+
+/* ---------- stage ---------- */
+.stage{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+
+.topbar{
+  display:flex;justify-content:flex-end;align-items:center;gap:14px;
+  padding:20px 34px 0;
+}
+.lang{
+  display:inline-flex;border:1px solid rgba(247,243,242,.18);border-radius:999px;
+  overflow:hidden;background:rgba(27,0,18,.55);
+}
+.lang button{
+  border:0;background:none;cursor:pointer;
+  font-family:'Ubuntu Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.1em;
+  color:var(--warm-500);padding:7px 15px;transition:background .18s,color .18s;
+}
+.lang button.on{background:var(--orange);color:#fff}
+.lang button:not(.on):hover{color:var(--warm-100)}
+
+.slide-wrap{flex:1;overflow-y:auto;padding:22px 34px 30px;scrollbar-width:thin;scrollbar-color:var(--aubergine-600) transparent}
+.slide-wrap::-webkit-scrollbar{width:8px}
+.slide-wrap::-webkit-scrollbar-thumb{background:var(--aubergine-600);border-radius:4px}
+
+.slide{max-width:920px;margin:0 auto;animation:rise .38s cubic-bezier(.2,.7,.3,1)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.slide{animation:none}}
+
+.eyebrow{
+  font-family:'Ubuntu Mono',monospace;font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--orange);margin-bottom:14px;
+}
+h1{
+  font-size:clamp(30px,4.4vw,52px);font-weight:700;line-height:1.04;
+  letter-spacing:-.022em;margin-bottom:16px;
+}
+h1 .thin{font-weight:300;color:var(--warm-300);display:block}
+.lede{font-size:17px;line-height:1.62;color:var(--warm-300);max-width:66ch;margin-bottom:26px;font-weight:300}
+p.body{font-size:15.5px;line-height:1.68;color:var(--warm-300);max-width:70ch;margin-bottom:16px}
+p.body strong{color:var(--warm-100);font-weight:500}
+code.inl{
+  font-family:'Ubuntu Mono',monospace;font-size:.93em;
+  background:rgba(233,84,32,.13);color:var(--orange-soft);
+  padding:1px 6px;border-radius:4px;
+}
+
+/* title slide */
+.hero-badge{
+  display:inline-flex;align-items:center;gap:9px;
+  border:1px solid rgba(233,84,32,.4);border-radius:999px;
+  padding:6px 14px;margin-bottom:26px;
+  font-family:'Ubuntu Mono',monospace;font-size:11.5px;letter-spacing:.12em;color:var(--orange-soft);
+}
+.hero-meta{display:flex;flex-wrap:wrap;gap:36px;margin-top:34px;padding-top:26px;border-top:1px solid rgba(247,243,242,.12)}
+.hero-meta div{min-width:120px}
+.hero-meta dt{font-family:'Ubuntu Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--warm-500);margin-bottom:6px}
+.hero-meta dd{font-size:16px;color:var(--warm-100);font-weight:500}
+
+/* terminal */
+.term{
+  background:var(--term-bg);border:1px solid var(--term-line);border-radius:8px;
+  margin:16px 0 20px;overflow:hidden;
+}
+.term-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 12px;border-bottom:1px solid var(--term-line);background:rgba(233,84,32,.05);
+}
+.term-tag{font-family:'Ubuntu Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--warm-500)}
+.copy{
+  border:1px solid rgba(247,243,242,.16);background:none;color:var(--warm-500);cursor:pointer;
+  font-family:'Ubuntu Mono',monospace;font-size:10.5px;letter-spacing:.1em;
+  padding:3px 10px;border-radius:4px;transition:.18s;
+}
+.copy:hover{border-color:var(--orange);color:var(--orange)}
+.copy.done{border-color:var(--ok);color:var(--ok)}
+.term-body{padding:13px 15px;overflow-x:auto}
+.term-body pre{
+  font-family:'Ubuntu Mono',monospace;font-size:13.5px;line-height:1.72;
+  color:#EDE4E1;white-space:pre;
+}
+.term-body .pr{color:var(--orange);user-select:none}
+.term-body .cm{color:var(--warm-500)}
+
+/* cards */
+.card{border-radius:8px;padding:15px 18px;margin:16px 0;border-left:3px solid}
+.card h4{font-size:13px;letter-spacing:.09em;text-transform:uppercase;font-weight:500;margin-bottom:7px}
+.card p{font-size:14.5px;line-height:1.62;color:var(--warm-300);font-weight:300}
+.card.warn{background:rgba(233,84,32,.10);border-color:var(--orange)}
+.card.warn h4{color:var(--orange)}
+.card.tip{background:rgba(119,33,111,.24);border-color:var(--aubergine-500)}
+.card.tip h4{color:#D9A7D3}
+.card.ok{background:rgba(95,207,128,.09);border-color:var(--ok)}
+.card.ok h4{color:var(--ok)}
+
+/* settings table */
+.tbl{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px}
+.tbl tr{border-bottom:1px solid rgba(247,243,242,.09)}
+.tbl td{padding:9px 4px;vertical-align:top}
+.tbl td:first-child{color:var(--warm-500);width:38%;font-weight:300}
+.tbl td:last-child{color:var(--warm-100);font-weight:400}
+.tbl td:last-child b{color:var(--orange-soft);font-weight:700}
+
+/* list */
+ul.pts{list-style:none;margin:12px 0 20px}
+ul.pts li{
+  position:relative;padding-left:22px;margin-bottom:10px;
+  font-size:15px;line-height:1.62;color:var(--warm-300);max-width:70ch;
+}
+ul.pts li::before{
+  content:"▸";position:absolute;left:0;top:-1px;color:var(--orange);font-size:13px;
+}
+ul.pts li strong{color:var(--warm-100);font-weight:500}
+
+.linkout{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'Ubuntu Mono',monospace;font-size:13px;
+  color:var(--orange);text-decoration:none;border-bottom:1px solid rgba(233,84,32,.4);
+  padding-bottom:2px;word-break:break-all;
+}
+.linkout:hover{color:var(--orange-soft);border-color:var(--orange-soft)}
+
+/* nav */
+.navbar{
+  display:flex;align-items:center;gap:18px;
+  padding:14px 34px 20px;border-top:1px solid rgba(247,243,242,.09);
+  background:rgba(27,0,18,.4);
+}
+.nb{
+  border:1px solid rgba(247,243,242,.2);background:none;color:var(--warm-300);
+  cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:400;
+  padding:8px 18px;border-radius:6px;transition:.18s;
+}
+.nb:hover:not(:disabled){border-color:var(--orange);color:var(--orange);background:rgba(233,84,32,.08)}
+.nb:disabled{opacity:.3;cursor:not-allowed}
+.nb.pri{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:500}
+.nb.pri:hover:not(:disabled){background:#F46437;border-color:#F46437;color:#fff}
+.track{flex:1;height:2px;background:rgba(247,243,242,.13);border-radius:2px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--orange);transition:width .34s cubic-bezier(.2,.7,.3,1)}
+.count{font-family:'Ubuntu Mono',monospace;font-size:12px;color:var(--warm-500);letter-spacing:.08em;min-width:56px;text-align:right}
+
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+/* responsive */
+@media(max-width:900px){
+  :root{--rail-w:0px}
+  .rail{display:none}
+  .slide-wrap{padding:16px 20px 24px}
+  .topbar{padding:14px 20px 0}
+  .navbar{padding:12px 20px 16px;gap:12px}
+  .nb{padding:7px 13px;font-size:13px}
+  .hero-meta{gap:22px}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-head">
+      <div class="mark">
+        <div class="dot-ring"></div>
+        <div class="mark-txt" id="railTitle">Ubuntu Server</div>
+      </div>
+      <div class="rail-sub">22.04.5 LTS · jammy · amd64</div>
+    </div>
+    <div class="rail-list" id="railList"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="topbar">
+      <div class="lang" role="group" aria-label="Language">
+        <button id="btnEn" class="on" onclick="setLang('en')">EN</button>
+        <button id="btnRu" onclick="setLang('ru')">RU</button>
+      </div>
+    </div>
+
+    <div class="slide-wrap" id="wrap"></div>
+
+    <nav class="navbar">
+      <button class="nb" id="prev" onclick="go(-1)">&larr; <span id="lPrev">Back</span></button>
+      <div class="track"><span id="bar"></span></div>
+      <div class="count" id="count">01 / 19</div>
+      <button class="nb pri" id="next" onclick="go(1)"><span id="lNext">Next</span> &rarr;</button>
+    </nav>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   CONTENT
+   block types: p | cmd | warn | tip | ok | list | tbl | link
+   ============================================================ */
+
+const DECK = [
+
+/* 0 ── TITLE ─────────────────────────────────────────────── */
+{
+  phase:{en:"Start",ru:"Начало"},
+  nav:{en:"Title",ru:"Титул"},
+  hero:true,
+  eyebrow:{en:"Build guide",ru:"Руководство"},
+  title:{en:"Ubuntu Server 22.04.5 LTS",ru:"Ubuntu Server 22.04.5 LTS"},
+  sub:{en:"Install and configure on VMware — in an order that avoids the usual traps",ru:"Установка и настройка в VMware — в порядке, который обходит типичные ошибки"},
+  lede:{
+    en:"Nineteen steps from an empty hypervisor to a patched server you can reach over SSH. The sequence matters: each step is placed where it is because doing it later causes a problem you would then have to undo.",
+    ru:"Девятнадцать шагов от пустого гипервизора до обновлённого сервера, доступного по SSH. Порядок важен: каждый шаг стоит на своём месте потому, что выполнение его позже создаёт проблему, которую придётся исправлять."
+  },
+  meta:[
+    {k:{en:"Release",ru:"Релиз"},v:{en:"22.04.5 LTS",ru:"22.04.5 LTS"}},
+    {k:{en:"Codename",ru:"Кодовое имя"},v:{en:"jammy",ru:"jammy"}},
+    {k:{en:"Supported to",ru:"Поддержка до"},v:{en:"April 2027",ru:"Апрель 2027"}},
+    {k:{en:"Host",ru:"Хост"},v:{en:"VMware Workstation",ru:"VMware Workstation"}}
+  ]
+},
+
+/* 1 ── HOST NETWORK ──────────────────────────────────────── */
+{
+  phase:{en:"Prepare",ru:"Подготовка"},
+  nav:{en:"Know your network",ru:"Узнать свою сеть"},
+  eyebrow:{en:"Step 01 · before anything else",ru:"Шаг 01 · перед всем остальным"},
+  title:{en:"Find out what network you are actually on",ru:"Выясните, в какой сети вы находитесь"},
+  blocks:[
+    {t:"p",en:"Do this <strong>first</strong>, on the host machine, before you create the VM. Every later networking decision depends on knowing your real subnet and gateway. Guessing here is the single most common cause of a broken install.",ru:"Сделайте это <strong>первым</strong>, на хост-машине, до создания ВМ. Все дальнейшие сетевые решения зависят от знания реальной подсети и шлюза. Догадки здесь — самая частая причина неудачной установки."},
+    {t:"cmd",tag:{en:"Windows host · PowerShell",ru:"Хост Windows · PowerShell"},lines:["ipconfig"]},
+    {t:"cmd",tag:{en:"macOS or Linux host",ru:"Хост macOS или Linux"},lines:["ip -br a","ip r | grep default"]},
+    {t:"p",en:"Write down two things from the <strong>active</strong> adapter — the one with a real IPv4 address, not the ones showing <code class='inl'>Media disconnected</code>: its IPv4 address and its default gateway.",ru:"Запишите две вещи с <strong>активного</strong> адаптера — того, у которого есть реальный IPv4-адрес, а не помеченного <code class='inl'>Media disconnected</code>: его IPv4-адрес и шлюз по умолчанию."},
+    {t:"warn",title:{en:"VMware adapters are not your network",ru:"Адаптеры VMware — не ваша сеть"},
+      en:"You will also see VMnet1, VMnet8 and possibly VirtualBox adapters listed. Those are virtual. Ignore them for now — but note the VMnet8 address, because that is the subnet a NAT virtual machine will live on.",
+      ru:"Вы также увидите адаптеры VMnet1, VMnet8 и, возможно, VirtualBox. Они виртуальные. Пока игнорируйте их — но запомните адрес VMnet8, потому что именно в этой подсети окажется ВМ в режиме NAT."},
+    {t:"tip",title:{en:"Pick your server address now",ru:"Выберите адрес сервера сейчас"},
+      en:"Choose an address in that subnet, below .100, so it sits outside the DHCP pool. Throughout this guide the example is 192.168.81.50 on the VMware NAT subnet, gateway 192.168.81.2. Substitute your own.",
+      ru:"Выберите адрес в этой подсети ниже .100, чтобы он был вне пула DHCP. В этом руководстве используется пример 192.168.81.50 в подсети VMware NAT, шлюз 192.168.81.2. Подставьте свои значения."}
+  ]
+},
+
+/* 2 ── ISO ───────────────────────────────────────────────── */
+{
+  phase:{en:"Prepare",ru:"Подготовка"},
+  nav:{en:"Download the ISO",ru:"Скачать ISO"},
+  eyebrow:{en:"Step 02",ru:"Шаг 02"},
+  title:{en:"Get the Server ISO",ru:"Скачайте образ Server"},
+  blocks:[
+    {t:"link",url:"https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso",label:"ubuntu-22.04.5-live-server-amd64.iso"},
+    {t:"p",en:"Roughly 2 GB. Save it somewhere local — <strong>not</strong> inside OneDrive, Dropbox or iCloud. Sync clients turn files into cloud placeholders, and tools that read them directly can fail in ways that give you no useful error message.",ru:"Около 2 ГБ. Сохраните локально — <strong>не</strong> в OneDrive, Dropbox или iCloud. Клиенты синхронизации превращают файлы в облачные заглушки, и программы, читающие их напрямую, могут падать без внятного сообщения об ошибке."},
+    {t:"warn",title:{en:"Server, not Desktop",ru:"Server, а не Desktop"},
+      en:"The filename must contain live-server. The Desktop ISO installs a full graphical environment that will consume RAM you want for actual workloads, and its installer flow is completely different from what follows.",
+      ru:"В имени файла должно быть live-server. Образ Desktop установит полноценное графическое окружение, которое съест оперативную память, нужную для реальных задач, и его установщик работает совершенно иначе, чем описано далее."},
+    {t:"p",en:"Verify the download if you like — Canonical publishes SHA256 sums next to the ISO:",ru:"При желании проверьте загрузку — Canonical публикует контрольные суммы SHA256 рядом с образом:"},
+    {t:"cmd",tag:{en:"PowerShell",ru:"PowerShell"},lines:["Get-FileHash .\\ubuntu-22.04.5-live-server-amd64.iso -Algorithm SHA256"]}
+  ]
+},
+
+/* 3 ── CREATE VM ─────────────────────────────────────────── */
+{
+  phase:{en:"Virtual machine",ru:"Виртуальная машина"},
+  nav:{en:"Create the VM",ru:"Создать ВМ"},
+  eyebrow:{en:"Step 03",ru:"Шаг 03"},
+  title:{en:"Create the virtual machine",ru:"Создайте виртуальную машину"},
+  blocks:[
+    {t:"p",en:"<strong>File → New Virtual Machine → Custom (Advanced).</strong> The Typical path hides settings you need.",ru:"<strong>File → New Virtual Machine → Custom (Advanced).</strong> Режим Typical скрывает нужные настройки."},
+    {t:"tbl",rows:[
+      {k:{en:"Guest OS installation",ru:"Установка гостевой ОС"},v:{en:"<b>I will install the OS later</b>",ru:"<b>I will install the OS later</b>"}},
+      {k:{en:"Guest OS",ru:"Гостевая ОС"},v:{en:"Linux → Ubuntu 64-bit",ru:"Linux → Ubuntu 64-bit"}},
+      {k:{en:"Name",ru:"Имя"},v:{en:"ubuntu-server",ru:"ubuntu-server"}},
+      {k:{en:"Processors",ru:"Процессоры"},v:{en:"2 × 2 cores = 4 vCPU",ru:"2 × 2 ядра = 4 vCPU"}},
+      {k:{en:"Memory",ru:"Память"},v:{en:"<b>8192 MB</b> (4096 minimum)",ru:"<b>8192 МБ</b> (минимум 4096)"}},
+      {k:{en:"Network",ru:"Сеть"},v:{en:"<b>NAT</b>",ru:"<b>NAT</b>"}},
+      {k:{en:"Disk",ru:"Диск"},v:{en:"<b>60 GB</b>, thin, single file",ru:"<b>60 ГБ</b>, тонкий, одним файлом"}}
+    ]},
+    {t:"warn",title:{en:"Do not let VMware install the OS for you",ru:"Не позволяйте VMware ставить ОС за вас"},
+      en:"If you point the wizard at the ISO on that first screen, VMware triggers Easy Install: it silently auto-answers the entire installer with its own choices for username, password and partitioning. You get a machine you did not configure. Always choose to install the OS later and attach the ISO afterwards.",
+      ru:"Если указать образ на первом экране мастера, VMware запустит Easy Install: он молча ответит за вас на все вопросы установщика, выбрав своё имя пользователя, пароль и разметку. Вы получите машину, которую не настраивали. Всегда выбирайте установку ОС позже и подключайте образ после."},
+    {t:"tip",title:{en:"Why NAT and not Bridged",ru:"Почему NAT, а не Bridged"},
+      en:"Bridged puts the VM directly on your physical LAN, which is useful — but over Wi-Fi it frequently fails outright. Many wireless drivers refuse to forward frames for a second MAC address, and the guest ends up with no link at all. NAT works everywhere, and your host can still reach the VM through the VMnet8 adapter.",
+      ru:"Bridged помещает ВМ прямо в физическую сеть, что удобно — но по Wi-Fi это часто просто не работает. Многие беспроводные драйверы отказываются передавать кадры для второго MAC-адреса, и в гостевой системе вообще нет линка. NAT работает везде, а хост по-прежнему видит ВМ через адаптер VMnet8."}
+  ]
+},
+
+/* 4 ── HARDWARE ──────────────────────────────────────────── */
+{
+  phase:{en:"Virtual machine",ru:"Виртуальная машина"},
+  nav:{en:"Customize hardware",ru:"Настроить железо"},
+  eyebrow:{en:"Step 04",ru:"Шаг 04"},
+  title:{en:"Attach the ISO, strip what you don't need",ru:"Подключите образ, уберите лишнее"},
+  blocks:[
+    {t:"p",en:"On the final wizard screen click <strong>Customize Hardware</strong>. If you already finished, reopen with <code class='inl'>VM → Settings</code>.",ru:"На последнем экране мастера нажмите <strong>Customize Hardware</strong>. Если мастер уже закрыт, откройте <code class='inl'>VM → Settings</code>."},
+    {t:"list",items:[
+      {en:"<strong>CD/DVD</strong> → Use ISO image file → select the 22.04.5 ISO → tick <strong>Connect at power on</strong>",ru:"<strong>CD/DVD</strong> → Use ISO image file → выберите образ 22.04.5 → отметьте <strong>Connect at power on</strong>"},
+      {en:"<strong>Network Adapter</strong> → confirm NAT, tick Connect at power on, <strong>untick</strong> Replicate physical network connection state",ru:"<strong>Network Adapter</strong> → убедитесь, что NAT, отметьте Connect at power on, <strong>снимите</strong> Replicate physical network connection state"},
+      {en:"<strong>Remove</strong> Sound Card, Printer and USB Controller",ru:"<strong>Удалите</strong> Sound Card, Printer и USB Controller"},
+      {en:"<strong>Display</strong> → untick Accelerate 3D graphics",ru:"<strong>Display</strong> → снимите Accelerate 3D graphics"}
+    ]},
+    {t:"tip",title:{en:"That one unticked box saves you a two-minute boot hang",ru:"Одна снятая галочка избавит от двухминутного зависания при загрузке"},
+      en:"Replicate physical network connection state drops the guest's virtual link whenever the host adapter blips — which Wi-Fi does constantly. The guest then boots with no carrier, and systemd-networkd-wait-online blocks startup for two full minutes before giving up.",
+      ru:"Replicate physical network connection state сбрасывает виртуальный линк гостя при каждом кратком сбое адаптера хоста — а Wi-Fi делает это постоянно. Гость загружается без несущей, и systemd-networkd-wait-online блокирует запуск на две минуты, прежде чем сдаться."},
+    {t:"p",en:"Now power on the VM. Click inside the window to capture your keyboard; <strong>Ctrl+Alt</strong> releases it back to the host.",ru:"Теперь включите ВМ. Кликните внутри окна, чтобы захватить клавиатуру; <strong>Ctrl+Alt</strong> возвращает её хосту."}
+  ]
+},
+
+/* 5 ── INSTALLER BASICS ──────────────────────────────────── */
+{
+  phase:{en:"Installer",ru:"Установщик"},
+  nav:{en:"Language, keyboard, type",ru:"Язык, клавиатура, тип"},
+  eyebrow:{en:"Step 05",ru:"Шаг 05"},
+  title:{en:"The first four screens",ru:"Первые четыре экрана"},
+  blocks:[
+    {t:"p",en:"Navigation is keyboard only: arrows and <strong>Tab</strong> to move, <strong>Space</strong> to toggle a checkbox, <strong>Enter</strong> to activate. The mouse does nothing.",ru:"Управление только с клавиатуры: стрелки и <strong>Tab</strong> для перемещения, <strong>Space</strong> для переключения флажка, <strong>Enter</strong> для подтверждения. Мышь не работает."},
+    {t:"tbl",rows:[
+      {k:{en:"GRUB menu",ru:"Меню GRUB"},v:{en:"Try or Install Ubuntu Server → Enter",ru:"Try or Install Ubuntu Server → Enter"}},
+      {k:{en:"Language",ru:"Язык"},v:{en:"English",ru:"English"}},
+      {k:{en:"Installer update",ru:"Обновление установщика"},v:{en:"<b>Continue without updating</b>",ru:"<b>Continue without updating</b>"}},
+      {k:{en:"Keyboard",ru:"Клавиатура"},v:{en:"Your layout, or Identify keyboard",ru:"Ваша раскладка или Identify keyboard"}},
+      {k:{en:"Installation type",ru:"Тип установки"},v:{en:"<b>Ubuntu Server</b> — not minimized",ru:"<b>Ubuntu Server</b> — не minimized"}}
+    ]},
+    {t:"ok",title:{en:"A black screen here is normal",ru:"Чёрный экран здесь — это нормально"},
+      en:"After the GRUB menu you will get 30 to 60 seconds of scrolling kernel text followed by an apparently frozen screen while cloud-init runs. Nothing is wrong. Wait.",
+      ru:"После меню GRUB вы увидите 30–60 секунд бегущего текста ядра, а затем на вид зависший экран, пока работает cloud-init. Всё в порядке. Подождите."},
+    {t:"warn",title:{en:"Avoid the minimized install",ru:"Не выбирайте minimized"},
+      en:"It strips editors, man pages and diagnostic tools. On a server you will be troubleshooting, those few hundred megabytes are worth keeping.",
+      ru:"Он вырезает редакторы, man-страницы и диагностические утилиты. На сервере, который вы будете отлаживать, эти пара сотен мегабайт стоят того."}
+  ]
+},
+
+/* 6 ── NETWORK ───────────────────────────────────────────── */
+{
+  phase:{en:"Installer",ru:"Установщик"},
+  nav:{en:"Network — set static here",ru:"Сеть — статика здесь"},
+  eyebrow:{en:"Step 06 · the important one",ru:"Шаг 06 · самый важный"},
+  title:{en:"Set the static IP now, inside the installer",ru:"Задайте статический IP прямо в установщике"},
+  blocks:[
+    {t:"p",en:"You will see <code class='inl'>ens33</code> with a DHCP address already assigned. Highlight it → <strong>Enter</strong> → <strong>Edit IPv4</strong> → change method from Automatic (DHCP) to <strong>Manual</strong>.",ru:"Вы увидите <code class='inl'>ens33</code> с уже полученным адресом DHCP. Выделите его → <strong>Enter</strong> → <strong>Edit IPv4</strong> → смените метод с Automatic (DHCP) на <strong>Manual</strong>."},
+    {t:"cmd",tag:{en:"Fill in — substitute your own subnet",ru:"Заполните — подставьте свою подсеть"},lines:[
+      "Subnet:         192.168.81.0/24",
+      "Address:        192.168.81.50",
+      "Gateway:        192.168.81.2",
+      "Name servers:   1.1.1.1,8.8.8.8",
+      "Search domains: (leave blank)"
+    ]},
+    {t:"list",items:[
+      {en:"<strong>Subnet</strong> is the network in CIDR form, ending in .0/24 — not your own address",ru:"<strong>Subnet</strong> — это сеть в формате CIDR, оканчивается на .0/24 — не ваш собственный адрес"},
+      {en:"<strong>Gateway</strong> on a VMware NAT network is <code class='inl'>.2</code>, not <code class='inl'>.1</code>",ru:"<strong>Gateway</strong> в сети VMware NAT — это <code class='inl'>.2</code>, а не <code class='inl'>.1</code>"},
+      {en:"<strong>Name servers</strong> are comma separated with no spaces",ru:"<strong>Name servers</strong> перечисляются через запятую без пробелов"}
+    ]},
+    {t:"ok",title:{en:"Why here and not later",ru:"Почему здесь, а не потом"},
+      en:"When you set a static address in the installer, subiquity writes the netplan config and also disables cloud-init's network management for you. Configure it after installation instead and cloud-init stays in charge — it keeps writing its own DHCP config that merges with yours, leaving the interface with two addresses. Doing it here removes that entire class of problem.",
+      ru:"Когда вы задаёте статический адрес в установщике, subiquity записывает конфигурацию netplan и заодно отключает управление сетью со стороны cloud-init. Если настроить сеть после установки, cloud-init останется главным — он продолжит писать свой DHCP-конфиг, который сольётся с вашим, и на интерфейсе окажется два адреса. Настройка здесь снимает весь этот класс проблем."},
+    {t:"p",en:"Save, then confirm the interface line now reads <strong>static</strong> rather than DHCPv4 before you continue.",ru:"Сохраните и убедитесь, что в строке интерфейса теперь написано <strong>static</strong>, а не DHCPv4, прежде чем продолжать."}
+  ]
+},
+
+/* 7 ── PROXY & MIRROR ────────────────────────────────────── */
+{
+  phase:{en:"Installer",ru:"Установщик"},
+  nav:{en:"Proxy and mirror",ru:"Прокси и зеркало"},
+  eyebrow:{en:"Step 07",ru:"Шаг 07"},
+  title:{en:"Proxy and archive mirror",ru:"Прокси и зеркало архива"},
+  blocks:[
+    {t:"p",en:"<strong>Proxy:</strong> leave blank unless you are behind a corporate proxy.",ru:"<strong>Proxy:</strong> оставьте пустым, если вы не за корпоративным прокси."},
+    {t:"p",en:"<strong>Mirror:</strong> accept the default. The installer tests it and shows scrolling output while it works.",ru:"<strong>Mirror:</strong> примите значение по умолчанию. Установщик проверяет зеркало и показывает бегущий вывод во время работы."},
+    {t:"cmd",tag:{en:"Normal output",ru:"Нормальный вывод"},lines:[
+      "Ign:1 http://archive.ubuntu.com/ubuntu jammy InRelease",
+      "Get:2 http://archive.ubuntu.com/ubuntu jammy Release [265 kB]"
+    ]},
+    {t:"ok",title:{en:"Ign lines are fine",ru:"Строки Ign — это нормально"},
+      en:"Ign simply means apt skipped a file it did not need. Only Err lines, or the message that the mirror does not seem to work, indicate a real problem.",
+      ru:"Ign означает лишь, что apt пропустил ненужный ему файл. Только строки Err или сообщение о неработающем зеркале указывают на настоящую проблему."},
+    {t:"warn",title:{en:"If the mirror test fails",ru:"Если проверка зеркала не проходит"},
+      en:"That is a networking problem, not a mirror problem. Go back to the network screen and check the gateway and name servers. A wrong gateway produces exactly this symptom.",
+      ru:"Это проблема сети, а не зеркала. Вернитесь на экран настройки сети и проверьте шлюз и DNS-серверы. Неверный шлюз даёт ровно такой симптом."}
+  ]
+},
+
+/* 8 ── STORAGE ───────────────────────────────────────────── */
+{
+  phase:{en:"Installer",ru:"Установщик"},
+  nav:{en:"Storage — the LVM trap",ru:"Диск — ловушка LVM"},
+  eyebrow:{en:"Step 08 · second most important",ru:"Шаг 08 · второй по важности"},
+  title:{en:"Storage, and the half-a-disk problem",ru:"Разметка и проблема половины диска"},
+  blocks:[
+    {t:"list",items:[
+      {en:"Select <strong>Use an entire disk</strong>",ru:"Выберите <strong>Use an entire disk</strong>"},
+      {en:"<strong>Untick</strong> “Set up this disk as an LVM group” — press Space",ru:"<strong>Снимите</strong> «Set up this disk as an LVM group» — нажмите Space"},
+      {en:"Leave LUKS encryption off",ru:"Шифрование LUKS оставьте выключенным"}
+    ]},
+    {t:"warn",title:{en:"What happens if you leave LVM on",ru:"Что произойдёт, если оставить LVM"},
+      en:"The installer creates a volume group spanning the whole disk but allocates only about half of it to the root logical volume. On a 60 GB disk you boot into roughly 26 GB of usable space while the rest sits unclaimed. Nothing warns you. You discover it later when a service fills the disk.",
+      ru:"Установщик создаёт группу томов на весь диск, но выделяет корневому логическому тому лишь около половины. На диске 60 ГБ вы загрузитесь примерно в 26 ГБ доступного места, а остальное останется невостребованным. Никаких предупреждений не будет. Вы узнаете об этом позже, когда какой-нибудь сервис заполнит диск."},
+    {t:"p",en:"On the storage summary screen, confirm the root filesystem shows close to the full disk size before continuing. Then confirm the destructive write warning.",ru:"На экране сводки разметки убедитесь, что корневая файловая система показывает объём, близкий к полному размеру диска. Затем подтвердите предупреждение о перезаписи."},
+    {t:"tip",title:{en:"If you want to keep LVM anyway",ru:"Если вы всё же хотите LVM"},
+      en:"It is genuinely useful for snapshots and later resizing. Just highlight ubuntu-lv on the summary screen, choose Edit, and set Size to the maximum before saving. Or fix it after boot — step 12 shows how.",
+      ru:"Он действительно полезен для снимков и последующего изменения размера. Просто выделите ubuntu-lv на экране сводки, выберите Edit и задайте максимальный размер перед сохранением. Или исправьте после загрузки — шаг 12 показывает как."}
+  ]
+},
+
+/* 9 ── PROFILE & SSH ─────────────────────────────────────── */
+{
+  phase:{en:"Installer",ru:"Установщик"},
+  nav:{en:"Profile and SSH",ru:"Профиль и SSH"},
+  eyebrow:{en:"Step 09",ru:"Шаг 09"},
+  title:{en:"Account, hostname and OpenSSH",ru:"Учётная запись, имя хоста и OpenSSH"},
+  blocks:[
+    {t:"cmd",tag:{en:"Profile setup",ru:"Настройка профиля"},lines:[
+      "Your name:           <your name>",
+      "Your server's name:  ubuntu-server      # hostname, lowercase, no spaces",
+      "Pick a username:     admin              # this account gets sudo",
+      "Password:            ****************"
+    ]},
+    {t:"p",en:"<strong>Ubuntu Pro:</strong> Skip for now.",ru:"<strong>Ubuntu Pro:</strong> Skip for now."},
+    {t:"warn",title:{en:"Tick “Install OpenSSH server”",ru:"Отметьте «Install OpenSSH server»"},
+      en:"Press Space on this screen. It is the single most valuable checkbox in the installer. The VMware console has no copy-paste, no scrollback and a fixed unreadable font — you do not want to configure a server through it. Import SSH identity: No.",
+      ru:"Нажмите Space на этом экране. Это самый ценный флажок во всём установщике. У консоли VMware нет копирования, нет прокрутки и мелкий нечитаемый шрифт — настраивать через неё сервер не стоит. Import SSH identity: No."},
+    {t:"p",en:"<strong>Featured server snaps:</strong> select nothing. You can install anything you need later with apt, and snaps add background services you did not ask for.",ru:"<strong>Featured server snaps:</strong> ничего не выбирайте. Всё нужное можно поставить позже через apt, а snap-пакеты добавляют фоновые службы, которых вы не просили."}
+  ]
+},
+
+/* 10 ── FINISH ───────────────────────────────────────────── */
+{
+  phase:{en:"Installer",ru:"Установщик"},
+  nav:{en:"Finish and reboot",ru:"Завершение и перезагрузка"},
+  eyebrow:{en:"Step 10",ru:"Шаг 10"},
+  title:{en:"Let it finish, then reboot",ru:"Дождитесь конца и перезагрузитесь"},
+  blocks:[
+    {t:"p",en:"Installation takes five to twenty minutes. It will appear to stall on “Downloading and installing security updates” near the end — let it run. <strong>View full log</strong> shows what it is actually doing.",ru:"Установка занимает от пяти до двадцати минут. Ближе к концу она словно застрянет на «Downloading and installing security updates» — дайте ей доработать. <strong>View full log</strong> покажет, что происходит на самом деле."},
+    {t:"p",en:"Choose <strong>Reboot Now</strong>. You will get a prompt asking you to remove the installation medium — in most cases you can simply press <strong>Enter</strong>. VMware releases the virtual disc itself and the machine boots straight into the installed system.",ru:"Выберите <strong>Reboot Now</strong>. Появится запрос об извлечении установочного носителя — в большинстве случаев достаточно нажать <strong>Enter</strong>. VMware сама освободит виртуальный диск, и машина загрузится в установленную систему."},
+    {t:"ok",title:{en:"“Failed unmounting /cdrom” is cosmetic",ru:"«Failed unmounting /cdrom» — косметика"},
+      en:"The installer wanted to unmount the ISO before shutting down and could not. Every Ubuntu install prints this. It does not affect the installed system.",
+      ru:"Установщик хотел отмонтировать образ перед выключением и не смог. Это печатает каждая установка Ubuntu. На установленную систему это не влияет."},
+    {t:"warn",title:{en:"Only if it boots back into the installer",ru:"Только если снова грузится установщик"},
+      en:"If the GRUB menu offers you “Try or Install Ubuntu Server” again, the ISO is still attached and ahead of the disk in the boot order. Detach it, then reset the machine.",
+      ru:"Если меню GRUB снова предлагает «Try or Install Ubuntu Server», образ всё ещё подключён и стоит в порядке загрузки выше диска. Отключите его и перезапустите машину."},
+    {t:"cmd",tag:{en:"VMware menu — only if needed",ru:"Меню VMware — только при необходимости"},lines:[
+      "VM → Removable Devices → CD/DVD → Disconnect",
+      "VM → Settings → CD/DVD → untick Connect at power on",
+      "VM → Power → Restart Guest"
+    ]},
+    {t:"tip",title:{en:"Why some installs never need this",ru:"Почему в части случаев это не нужно"},
+      en:"Whether the disc still competes for the boot order depends on how the VM was created. When the ISO is attached through the wizard's Select ISO image option, VMware often releases it automatically once the install completes. When it is attached manually after choosing “install the OS later”, it stays exactly as configured — so this is the path where the GRUB menu occasionally reappears. Either way the fix above is harmless, so try Enter first and only fall back if you need to.",
+      ru:"Будет ли диск конкурировать за порядок загрузки, зависит от того, как создавалась ВМ. Если образ подключён через опцию мастера Select ISO image, VMware часто освобождает его сама по завершении установки. Если же он подключён вручную после выбора «install the OS later», он остаётся ровно так, как настроен, — именно на этом пути иногда снова появляется меню GRUB. В любом случае описанное выше безвредно, поэтому сначала нажмите Enter и прибегайте к нему только при необходимости."}
+  ]
+},
+
+/* 11 ── FIRST BOOT ───────────────────────────────────────── */
+{
+  phase:{en:"First boot",ru:"Первая загрузка"},
+  nav:{en:"Verify the basics",ru:"Проверить основное"},
+  eyebrow:{en:"Step 11",ru:"Шаг 11"},
+  title:{en:"Log in and check four things",ru:"Войдите и проверьте четыре вещи"},
+  blocks:[
+    {t:"p",en:"The password will not echo any characters as you type. That is expected, not a broken keyboard.",ru:"Пароль не отображается при вводе никакими символами. Так и должно быть, клавиатура исправна."},
+    {t:"cmd",tag:{en:"Verification",ru:"Проверка"},lines:[
+      "ip -br a          # exactly one address on ens33",
+      "ip r | grep default",
+      "ping -c3 1.1.1.1        # raw connectivity",
+      "ping -c3 archive.ubuntu.com   # DNS resolution",
+      "df -h /           # close to the full disk size?"
+    ]},
+    {t:"list",items:[
+      {en:"<strong>One address only.</strong> Two means cloud-init is still running DHCP alongside your static — see step 13",ru:"<strong>Только один адрес.</strong> Два означают, что cloud-init всё ещё держит DHCP рядом с вашей статикой — см. шаг 13"},
+      {en:"<strong>First ping works, second fails</strong> → your name servers are wrong",ru:"<strong>Первый ping проходит, второй нет</strong> → неверные DNS-серверы"},
+      {en:"<strong>Both pings fail</strong> → gateway is wrong, or the adapter is not connected",ru:"<strong>Оба ping не проходят</strong> → неверный шлюз или адаптер не подключён"},
+      {en:"<strong>Disk is about half the size you gave it</strong> → LVM, go to step 12",ru:"<strong>Диск примерно вдвое меньше заданного</strong> → это LVM, перейдите к шагу 12"}
+    ]},
+    {t:"tip",title:{en:"Fix the timezone while you are here",ru:"Заодно поправьте часовой пояс"},
+      en:"Clock skew between a server and the machines reporting to it makes correlating events genuinely confusing later.",
+      ru:"Расхождение часов между сервером и машинами, которые ему отчитываются, потом сильно затрудняет сопоставление событий."},
+    {t:"cmd",tag:{en:"Timezone",ru:"Часовой пояс"},lines:["timedatectl","sudo timedatectl list-timezones | grep -i <city>","sudo timedatectl set-timezone Region/City"]}
+  ]
+},
+
+/* 12 ── LVM FIX ──────────────────────────────────────────── */
+{
+  phase:{en:"First boot",ru:"Первая загрузка"},
+  nav:{en:"Reclaim disk space",ru:"Вернуть место на диске"},
+  eyebrow:{en:"Step 12 · only if you kept LVM",ru:"Шаг 12 · только если оставили LVM"},
+  title:{en:"Reclaim the missing half of the disk",ru:"Верните недостающую половину диска"},
+  blocks:[
+    {t:"p",en:"If <code class='inl'>df -h /</code> showed roughly half the disk you allocated, the space is not lost — it is unallocated inside the volume group. No reinstall needed.",ru:"Если <code class='inl'>df -h /</code> показал примерно половину выделенного диска, место не потеряно — оно просто не распределено внутри группы томов. Переустановка не нужна."},
+    {t:"cmd",tag:{en:"Check, then extend",ru:"Проверить, затем расширить"},lines:[
+      "sudo vgs          # look at VFree — the unclaimed space",
+      "sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv",
+      "sudo resize2fs /dev/ubuntu-vg/ubuntu-lv",
+      "df -h /"
+    ]},
+    {t:"p",en:"Two commands because LVM and the filesystem are separate layers: <strong>lvextend</strong> grows the block device, <strong>resize2fs</strong> grows ext4 into the new space. Both run online — no unmount, no reboot.",ru:"Две команды, потому что LVM и файловая система — разные уровни: <strong>lvextend</strong> увеличивает блочное устройство, <strong>resize2fs</strong> расширяет ext4 на новое место. Обе работают на живой системе — без размонтирования и перезагрузки."},
+    {t:"tip",title:{en:"If you expand the virtual disk later",ru:"Если позже увеличите виртуальный диск"},
+      en:"Growing the disk in VMware requires the VM powered off with no snapshots. After booting you need an extra first step — growpart to extend the partition — before lvextend can see the new space.",
+      ru:"Увеличение диска в VMware требует выключенной ВМ без снимков. После загрузки нужен дополнительный первый шаг — growpart для расширения раздела — прежде чем lvextend увидит новое место."},
+    {t:"cmd",tag:{en:"After expanding the virtual disk",ru:"После увеличения виртуального диска"},lines:[
+      "sudo growpart /dev/sda 3",
+      "sudo pvresize /dev/sda3",
+      "sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv",
+      "sudo resize2fs /dev/ubuntu-vg/ubuntu-lv"
+    ]}
+  ]
+},
+
+/* 13 ── CLOUD-INIT ───────────────────────────────────────── */
+{
+  phase:{en:"First boot",ru:"Первая загрузка"},
+  nav:{en:"Duplicate IP check",ru:"Проверка двойного IP"},
+  eyebrow:{en:"Step 13 · verification",ru:"Шаг 13 · проверка"},
+  title:{en:"Make sure you have one address, not two",ru:"Убедитесь, что адрес один, а не два"},
+  blocks:[
+    {t:"p",en:"If you set the static address in the installer as instructed, this is already correct and you can skip ahead. Check anyway — it takes three seconds and the failure mode is subtle.",ru:"Если вы задали статический адрес в установщике, как описано, здесь уже всё правильно и можно идти дальше. Всё равно проверьте — это три секунды, а проявляется проблема неочевидно."},
+    {t:"cmd",tag:{en:"Check",ru:"Проверка"},lines:["ip -br a","ls -l /etc/netplan/"]},
+    {t:"p",en:"You want <strong>one address</strong> on ens33 and <strong>one file</strong> in the netplan directory. If you see a second address marked <code class='inl'>dynamic</code>, or a file named <code class='inl'>50-cloud-init.yaml</code>, apply the fix below.",ru:"Нужен <strong>один адрес</strong> на ens33 и <strong>один файл</strong> в каталоге netplan. Если видите второй адрес с пометкой <code class='inl'>dynamic</code> или файл <code class='inl'>50-cloud-init.yaml</code>, примените исправление ниже."},
+    {t:"cmd",tag:{en:"Disable cloud-init networking",ru:"Отключить управление сетью cloud-init"},lines:[
+      "echo \"network: {config: disabled}\" | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg",
+      "sudo rm -f /etc/netplan/50-cloud-init.yaml",
+      "sudo netplan apply",
+      "ip -br a"
+    ]},
+    {t:"warn",title:{en:"Why deleting the file alone is not enough",ru:"Почему удалить файл недостаточно"},
+      en:"Netplan merges every yaml in its directory rather than picking a winner, so a cloud-init file requesting DHCP and your file requesting static both get applied. And cloud-init regenerates its file on every boot — the 99-disable file is what actually stops it coming back.",
+      ru:"Netplan объединяет все yaml-файлы в своём каталоге, а не выбирает один, поэтому применяются и файл cloud-init с DHCP, и ваш со статикой. К тому же cloud-init заново создаёт свой файл при каждой загрузке — именно файл 99-disable не даёт ему вернуться."}
+  ]
+},
+
+/* 14 ── UPDATE ───────────────────────────────────────────── */
+{
+  phase:{en:"Configure",ru:"Настройка"},
+  nav:{en:"Update and tools",ru:"Обновления и утилиты"},
+  eyebrow:{en:"Step 14",ru:"Шаг 14"},
+  title:{en:"Patch the system, add the essentials",ru:"Обновите систему, добавьте необходимое"},
+  blocks:[
+    {t:"cmd",tag:{en:"Update",ru:"Обновление"},lines:[
+      "sudo apt update && sudo apt full-upgrade -y",
+      "sudo apt install -y open-vm-tools curl gnupg apt-transport-https bash-completion"
+    ]},
+    {t:"list",items:[
+      {en:"<strong>open-vm-tools</strong> — graceful shutdown from the VMware menu, host time sync, proper console resizing",ru:"<strong>open-vm-tools</strong> — корректное выключение из меню VMware, синхронизация времени с хостом, правильный размер консоли"},
+      {en:"<strong>bash-completion</strong> — tab completion for package names and paths; worth more than it sounds",ru:"<strong>bash-completion</strong> — автодополнение имён пакетов и путей по Tab; полезнее, чем кажется"}
+    ]},
+    {t:"p",en:"If the output mentions a pending kernel upgrade, reboot to load it:",ru:"Если в выводе упомянуто ожидающее обновление ядра, перезагрузитесь, чтобы его загрузить:"},
+    {t:"cmd",tag:{en:"Reboot",ru:"Перезагрузка"},lines:["sudo reboot","","# after it comes back:","uname -r"]},
+    {t:"ok",title:{en:"“Not Upgrading: 2” is normal",ru:"«Not Upgrading: 2» — это нормально"},
+      en:"Some packages get held back by phased updates or a dependency that has not landed yet. Running full-upgrade rather than plain upgrade clears most of them.",
+      ru:"Некоторые пакеты удерживаются из-за поэтапного выката или ещё не появившейся зависимости. Команда full-upgrade вместо обычного upgrade убирает большинство из них."}
+  ]
+},
+
+/* 15 ── SSH ──────────────────────────────────────────────── */
+{
+  phase:{en:"Configure",ru:"Настройка"},
+  nav:{en:"Connect over SSH",ru:"Подключиться по SSH"},
+  eyebrow:{en:"Step 15",ru:"Шаг 15"},
+  title:{en:"Get off the VMware console",ru:"Уйдите с консоли VMware"},
+  blocks:[
+    {t:"cmd",tag:{en:"From the host terminal",ru:"Из терминала хоста"},lines:["ssh admin@192.168.81.50"]},
+    {t:"p",en:"Type <strong>yes</strong> to accept the host key the first time. From here on you have copy-paste, scrollback, a readable font and a resizable window. Do everything else from this session.",ru:"В первый раз введите <strong>yes</strong>, чтобы принять ключ хоста. Дальше у вас есть копирование, прокрутка, читаемый шрифт и изменяемое окно. Всю остальную работу делайте отсюда."},
+    {t:"warn",title:{en:"REMOTE HOST IDENTIFICATION HAS CHANGED",ru:"REMOTE HOST IDENTIFICATION HAS CHANGED"},
+      en:"You will hit this whenever you rebuild a VM or reuse an IP address — the new machine has new host keys, and SSH correctly refuses to connect silently. Clear the cached entry and reconnect.",
+      ru:"Вы столкнётесь с этим при пересоздании ВМ или повторном использовании IP — у новой машины новые ключи, и SSH справедливо отказывается подключаться молча. Удалите запись из кэша и подключитесь заново."},
+    {t:"cmd",tag:{en:"Clear the stale key",ru:"Удалить устаревший ключ"},lines:["ssh-keygen -R 192.168.81.50"]},
+    {t:"tip",title:{en:"When not to clear it",ru:"Когда не надо очищать"},
+      en:"On a machine you did not rebuild and whose address did not change, that warning means what it literally says. Investigate rather than clearing it reflexively.",
+      ru:"Если машину вы не пересоздавали и адрес не менялся, это предупреждение означает ровно то, что написано. Разберитесь, а не очищайте рефлекторно."}
+  ]
+},
+
+/* 16 ── HARDENING ────────────────────────────────────────── */
+{
+  phase:{en:"Configure",ru:"Настройка"},
+  nav:{en:"Keys and firewall",ru:"Ключи и файрвол"},
+  eyebrow:{en:"Step 16 · optional but recommended",ru:"Шаг 16 · опционально, но желательно"},
+  title:{en:"Key-based login and a basic firewall",ru:"Вход по ключу и базовый файрвол"},
+  blocks:[
+    {t:"p",en:"Generate a key on the <strong>host</strong> and copy the public half to the server. After this you log in without typing a password.",ru:"Сгенерируйте ключ на <strong>хосте</strong> и скопируйте публичную часть на сервер. После этого вход будет без ввода пароля."},
+    {t:"cmd",tag:{en:"On the host",ru:"На хосте"},lines:[
+      "ssh-keygen -t ed25519",
+      "ssh-copy-id admin@192.168.81.50",
+      "",
+      "# Windows without ssh-copy-id:",
+      "type $env:USERPROFILE\\.ssh\\id_ed25519.pub | ssh admin@192.168.81.50 \"mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys\""
+    ]},
+    {t:"warn",title:{en:"Test the key before disabling passwords",ru:"Проверьте ключ перед отключением паролей"},
+      en:"Open a second terminal and confirm key login works while your existing session is still open. If you disable password authentication and the key is not working, you have locked yourself out of everything except the VMware console.",
+      ru:"Откройте второй терминал и убедитесь, что вход по ключу работает, пока текущая сессия ещё открыта. Если отключить парольную аутентификацию при неработающем ключе, вы отрежете себе всё, кроме консоли VMware."},
+    {t:"cmd",tag:{en:"Firewall — allow SSH first",ru:"Файрвол — сначала разрешите SSH"},lines:[
+      "sudo ufw allow OpenSSH",
+      "sudo ufw enable",
+      "sudo ufw status verbose"
+    ]},
+    {t:"p",en:"The order there is not optional. Enabling ufw before allowing SSH cuts your own connection immediately.",ru:"Порядок здесь принципиален. Включение ufw до разрешения SSH мгновенно обрывает ваше же соединение."}
+  ]
+},
+
+/* 17 ── SNAPSHOT ─────────────────────────────────────────── */
+{
+  phase:{en:"Configure",ru:"Настройка"},
+  nav:{en:"Snapshot",ru:"Снимок"},
+  eyebrow:{en:"Step 17",ru:"Шаг 17"},
+  title:{en:"Take a snapshot before installing anything",ru:"Сделайте снимок перед установкой чего-либо"},
+  blocks:[
+    {t:"cmd",tag:{en:"Power off cleanly first",ru:"Сначала корректно выключите"},lines:["sudo poweroff"]},
+    {t:"cmd",tag:{en:"VMware menu",ru:"Меню VMware"},lines:["VM → Snapshot → Take Snapshot","Name: clean 22.04.5, network configured, updated"]},
+    {t:"p",en:"A cold snapshot on a powered-off VM is smaller and cleaner than a live one, which has to capture memory state as well.",ru:"Холодный снимок выключенной ВМ меньше и чище живого, которому приходится сохранять ещё и состояние памяти."},
+    {t:"ok",title:{en:"This is your undo button",ru:"Это ваша кнопка отмены"},
+      en:"Installers for large platforms often refuse to run on a system where a previous attempt left artifacts behind, and their uninstall routines rarely clean up completely. Rolling back to a snapshot is a ten-second fix versus an hour of unpicking package state.",
+      ru:"Установщики крупных платформ часто отказываются работать на системе, где остались следы предыдущей попытки, а их процедуры удаления редко подчищают всё. Откат к снимку — это десять секунд против часа разбора состояния пакетов."},
+    {t:"tip",title:{en:"Keep snapshots few",ru:"Не копите снимки"},
+      en:"Each one adds a disk layer that slows I/O and blocks operations like expanding the virtual disk. Delete the ones you no longer need.",
+      ru:"Каждый добавляет слой диска, замедляющий ввод-вывод и блокирующий операции вроде расширения виртуального диска. Удаляйте ненужные."}
+  ]
+},
+
+/* 18 ── TROUBLESHOOTING ──────────────────────────────────── */
+{
+  phase:{en:"Reference",ru:"Справочник"},
+  nav:{en:"Troubleshooting",ru:"Устранение неполадок"},
+  eyebrow:{en:"Reference",ru:"Справочник"},
+  title:{en:"When something goes wrong",ru:"Когда что-то пошло не так"},
+  blocks:[
+    {t:"tbl",rows:[
+      {k:{en:"NO-CARRIER, state DOWN",ru:"NO-CARRIER, state DOWN"},v:{en:"Virtual cable unplugged. VM Settings → Network Adapter → tick Connected. Untick Replicate physical network connection state.",ru:"Виртуальный кабель отключён. VM Settings → Network Adapter → отметьте Connected. Снимите Replicate physical network connection state."}},
+      {k:{en:"Destination Host Unreachable",ru:"Destination Host Unreachable"},v:{en:"Your address is in a subnet that does not exist here. Compare against the host's own IP.",ru:"Ваш адрес в подсети, которой здесь нет. Сравните с собственным IP хоста."}},
+      {k:{en:"Temporary failure resolving",ru:"Temporary failure resolving"},v:{en:"DNS only. Gateway is reachable but name servers are wrong or missing from netplan.",ru:"Только DNS. Шлюз доступен, но DNS-серверы неверны или отсутствуют в netplan."}},
+      {k:{en:"Boot hangs on wait-online",ru:"Загрузка висит на wait-online"},v:{en:"Symptom of no carrier. It gives up after two minutes. Fix the adapter, or mask the service.",ru:"Симптом отсутствия несущей. Сдаётся через две минуты. Исправьте адаптер или замаскируйте службу."}},
+      {k:{en:"Two IPs on one interface",ru:"Два IP на одном интерфейсе"},v:{en:"cloud-init is still managing the network. See step 13.",ru:"Сетью всё ещё управляет cloud-init. См. шаг 13."}},
+      {k:{en:"Root filesystem half size",ru:"Корень вдвое меньше"},v:{en:"LVM under-allocation. See step 12.",ru:"Недовыделение LVM. См. шаг 12."}},
+      {k:{en:"Host key changed warning",ru:"Предупреждение о смене ключа"},v:{en:"Rebuilt VM or reused IP. ssh-keygen -R &lt;address&gt;",ru:"Пересозданная ВМ или повторно использованный IP. ssh-keygen -R &lt;адрес&gt;"}}
+    ]},
+    {t:"cmd",tag:{en:"Silence the two-minute boot wait",ru:"Убрать двухминутное ожидание при загрузке"},lines:[
+      "sudo systemctl disable systemd-networkd-wait-online.service",
+      "sudo systemctl mask systemd-networkd-wait-online.service"
+    ]},
+    {t:"p",en:"Nothing on a simple server needs the network up before userspace starts, so masking that unit just removes a wait.",ru:"На простом сервере ничему не нужна сеть до старта пользовательского пространства, так что маскировка этого юнита просто убирает ожидание."}
+  ]
+},
+
+/* 19 ── CHEAT SHEET ──────────────────────────────────────── */
+{
+  phase:{en:"Reference",ru:"Справочник"},
+  nav:{en:"Command reference",ru:"Список команд"},
+  eyebrow:{en:"Reference",ru:"Справочник"},
+  title:{en:"The commands worth remembering",ru:"Команды, которые стоит запомнить"},
+  blocks:[
+    {t:"cmd",tag:{en:"Network",ru:"Сеть"},lines:[
+      "ip -br a                    # addresses, one line per interface",
+      "ip r | grep default         # gateway",
+      "resolvectl status ens33     # which DNS servers are live",
+      "sudo netplan apply          # apply config changes",
+      "sudo netplan get            # merged view across all files"
+    ]},
+    {t:"cmd",tag:{en:"Disk and memory",ru:"Диск и память"},lines:[
+      "df -h /                     # free space on root",
+      "free -h                     # RAM",
+      "sudo vgs                    # LVM volume group, VFree = unclaimed",
+      "du -sh * | sort -rh         # biggest items here"
+    ]},
+    {t:"cmd",tag:{en:"Services and logs",ru:"Службы и журналы"},lines:[
+      "systemctl is-active ssh",
+      "sudo systemctl status ssh --no-pager",
+      "journalctl -u ssh -n 50 --no-pager",
+      "journalctl -p err -b         # errors this boot"
+    ]},
+    {t:"cmd",tag:{en:"System",ru:"Система"},lines:[
+      "lsb_release -a              # distro version",
+      "uname -r                    # running kernel",
+      "hostnamectl",
+      "timedatectl"
+    ]},
+    {t:"tip",title:{en:"One habit worth keeping",ru:"Одна привычка, которую стоит сохранить"},
+      en:"After any network change, run ip -br a and confirm one address per interface. That single check catches a whole class of problems in two seconds, whatever caused them.",
+      ru:"После любого изменения сети выполните ip -br a и убедитесь, что на интерфейсе один адрес. Эта единственная проверка ловит целый класс проблем за две секунды, какой бы ни была причина."}
+  ]
+}
+
+];
+
+/* ============================================================
+   UI STRINGS
+   ============================================================ */
+const UI = {
+  en:{back:"Back",next:"Next",copy:"Copy",copied:"Copied",railTitle:"Ubuntu Server",open:"Open"},
+  ru:{back:"Назад",next:"Далее",copy:"Копир.",copied:"Готово",railTitle:"Ubuntu Server",open:"Открыть"}
+};
+
+/* ============================================================
+   ENGINE
+   ============================================================ */
+let lang = "en";
+let idx = 0;
+
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+function hiCmd(line){
+  let s = esc(line);
+  const hash = s.indexOf("#");
+  if(hash > -1){
+    s = s.slice(0,hash) + '<span class="cm">' + s.slice(hash) + '</span>';
+  }
+  return s;
+}
+
+function renderBlocks(blocks){
+  let h = "";
+  blocks.forEach((b,i) => {
+    if(b.t === "p"){
+      h += '<p class="body">' + b[lang] + '</p>';
+    }
+    else if(b.t === "cmd"){
+      const tag = b.tag ? b.tag[lang] : "shell";
+      const body = b.lines.map(l => l === "" ? "" : hiCmd(l)).join("\n");
+      h += '<div class="term">'
+         +   '<div class="term-bar"><span class="term-tag">' + esc(tag) + '</span>'
+         +     '<button class="copy" data-i="' + i + '" onclick="doCopy(this,' + i + ')">' + UI[lang].copy + '</button>'
+         +   '</div>'
+         +   '<div class="term-body"><pre>' + body + '</pre></div>'
+         + '</div>';
+    }
+    else if(b.t === "warn" || b.t === "tip" || b.t === "ok"){
+      h += '<div class="card ' + b.t + '"><h4>' + esc(b.title[lang]) + '</h4><p>' + b[lang] + '</p></div>';
+    }
+    else if(b.t === "list"){
+      h += '<ul class="pts">' + b.items.map(it => '<li>' + it[lang] + '</li>').join("") + '</ul>';
+    }
+    else if(b.t === "tbl"){
+      h += '<table class="tbl">' + b.rows.map(r =>
+            '<tr><td>' + r.k[lang] + '</td><td>' + r.v[lang] + '</td></tr>').join("") + '</table>';
+    }
+    else if(b.t === "link"){
+      h += '<p class="body"><a class="linkout" href="' + b.url + '" target="_blank" rel="noopener">↓ ' + esc(b.label) + '</a></p>';
+    }
+  });
+  return h;
+}
+
+function render(){
+  const s = DECK[idx];
+  let h = "";
+
+  if(s.hero){
+    h += '<div class="hero-badge">● ' + esc(s.eyebrow[lang]) + '</div>';
+    h += '<h1>' + esc(s.title[lang]) + '<span class="thin">' + esc(s.sub[lang]) + '</span></h1>';
+    h += '<p class="lede">' + esc(s.lede[lang]) + '</p>';
+    h += '<dl class="hero-meta">' + s.meta.map(m =>
+          '<div><dt>' + esc(m.k[lang]) + '</dt><dd>' + esc(m.v[lang]) + '</dd></div>').join("") + '</dl>';
+  } else {
+    h += '<div class="eyebrow">' + esc(s.eyebrow[lang]) + '</div>';
+    h += '<h1>' + esc(s.title[lang]) + '</h1>';
+    h += renderBlocks(s.blocks);
+  }
+
+  const w = document.getElementById("wrap");
+  w.innerHTML = '<div class="slide">' + h + '</div>';
+  w.scrollTop = 0;
+
+  document.getElementById("count").textContent =
+    String(idx+1).padStart(2,"0") + " / " + String(DECK.length).padStart(2,"0");
+  document.getElementById("bar").style.width = ((idx+1)/DECK.length*100) + "%";
+  document.getElementById("prev").disabled = idx === 0;
+  document.getElementById("next").disabled = idx === DECK.length-1;
+
+  buildRail();
+}
+
+function buildRail(){
+  const list = document.getElementById("railList");
+  let h = "", lastPhase = null;
+  DECK.forEach((s,i) => {
+    const ph = s.phase[lang];
+    if(ph !== lastPhase){
+      h += '<div class="rail-item phase">' + esc(ph) + '</div>';
+      lastPhase = ph;
+    }
+    const cls = i === idx ? "active" : (i < idx ? "done" : "");
+    h += '<button class="rail-item ' + cls + '" onclick="jump(' + i + ')">'
+       +   '<span class="rn">' + String(i).padStart(2,"0") + '</span>'
+       +   '<span>' + esc(s.nav[lang]) + '</span>'
+       + '</button>';
+  });
+  list.innerHTML = h;
+  const act = list.querySelector(".rail-item.active");
+  if(act) act.scrollIntoView({block:"nearest"});
+}
+
+function doCopy(btn, i){
+  const s = DECK[idx];
+  const blk = s.blocks[i];
+  if(!blk || blk.t !== "cmd") return;
+  const text = blk.lines.filter(l => !l.trim().startsWith("#")).join("\n");
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = UI[lang].copied;
+    btn.classList.add("done");
+    setTimeout(() => { btn.textContent = UI[lang].copy; btn.classList.remove("done"); }, 1400);
+  }).catch(() => {
+    btn.textContent = "—";
+    setTimeout(() => { btn.textContent = UI[lang].copy; }, 1400);
+  });
+}
+
+function go(d){
+  const n = idx + d;
+  if(n < 0 || n >= DECK.length) return;
+  idx = n; render();
+}
+
+function jump(i){ idx = i; render(); }
+
+function setLang(l){
+  lang = l;
+  document.documentElement.lang = l;
+  document.getElementById("btnEn").classList.toggle("on", l === "en");
+  document.getElementById("btnRu").classList.toggle("on", l === "ru");
+  document.getElementById("lPrev").textContent = UI[l].back;
+  document.getElementById("lNext").textContent = UI[l].next;
+  document.getElementById("railTitle").textContent = UI[l].railTitle;
+  render();
+}
+
+document.addEventListener("keydown", e => {
+  if(e.target.tagName === "BUTTON" && e.key === " ") return;
+  if(e.key === "ArrowRight" || e.key === "PageDown"){ e.preventDefault(); go(1); }
+  if(e.key === "ArrowLeft"  || e.key === "PageUp"){ e.preventDefault(); go(-1); }
+  if(e.key === "Home"){ e.preventDefault(); jump(0); }
+  if(e.key === "End"){ e.preventDefault(); jump(DECK.length-1); }
+});
+
+render();
+</script>
+</body>
+</html>
