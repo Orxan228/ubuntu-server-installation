@@ -325,7 +325,10 @@ const DECK = [
       ru:"Вы также увидите адаптеры VMnet1, VMnet8 и, возможно, VirtualBox. Они виртуальные. Пока игнорируйте их — но запомните адрес VMnet8, потому что именно в этой подсети окажется ВМ в режиме NAT."},
     {t:"tip",title:{en:"Pick your server address now",ru:"Выберите адрес сервера сейчас"},
       en:"Choose an address in that subnet, below .100, so it sits outside the DHCP pool. Throughout this guide the example is 192.168.81.50 on the VMware NAT subnet, gateway 192.168.81.2. Substitute your own.",
-      ru:"Выберите адрес в этой подсети ниже .100, чтобы он был вне пула DHCP. В этом руководстве используется пример 192.168.81.50 в подсети VMware NAT, шлюз 192.168.81.2. Подставьте свои значения."}
+      ru:"Выберите адрес в этой подсети ниже .100, чтобы он был вне пула DHCP. В этом руководстве используется пример 192.168.81.50 в подсети VMware NAT, шлюз 192.168.81.2. Подставьте свои значения."},
+    {t:"warn",title:{en:"Building the SOC lab? Use the lab's network instead",ru:"Собираете SOC-лабораторию? Используйте сеть лаборатории"},
+      en:"In the SOC lab the Wazuh server does <strong>not</strong> sit on VMware NAT. Its adapter goes on the LAN segment <code class='inl'>LAN2</code> behind pfSense, with address <code class='inl'>192.168.20.10/24</code>, gateway <code class='inl'>192.168.20.1</code> and name server <code class='inl'>192.168.20.1</code>. Your host cannot reach that network, so do the SSH steps (15 and 16) from the Windows VM, and follow the lab guide's firewall rules.",
+      ru:"В SOC-лаборатории сервер Wazuh <strong>не</strong> находится в сети VMware NAT. Его адаптер подключается к LAN-сегменту <code class='inl'>LAN2</code> за pfSense: адрес <code class='inl'>192.168.20.10/24</code>, шлюз <code class='inl'>192.168.20.1</code>, DNS-сервер <code class='inl'>192.168.20.1</code>. С хоста эта сеть недоступна, поэтому шаги с SSH (15 и 16) выполняйте с ВМ Windows и следуйте правилам межсетевого экрана из руководства по лаборатории."}
   ]
 },
 
@@ -361,7 +364,7 @@ const DECK = [
       {k:{en:"Processors",ru:"Процессоры"},v:{en:"2 × 2 cores = 4 vCPU",ru:"2 × 2 ядра = 4 vCPU"}},
       {k:{en:"Memory",ru:"Память"},v:{en:"<b>8192 MB</b> (4096 minimum)",ru:"<b>8192 МБ</b> (минимум 4096)"}},
       {k:{en:"Network",ru:"Сеть"},v:{en:"<b>NAT</b>",ru:"<b>NAT</b>"}},
-      {k:{en:"Disk",ru:"Диск"},v:{en:"<b>60 GB</b>, thin, single file",ru:"<b>60 ГБ</b>, тонкий, одним файлом"}}
+      {k:{en:"Disk",ru:"Диск"},v:{en:"<b>60 GB</b>, Store virtual disk as a single file, leave Allocate all disk space now unticked",ru:"<b>60 ГБ</b>, Store virtual disk as a single file, галочку Allocate all disk space now не ставьте"}}
     ]},
     {t:"warn",title:{en:"Do not let VMware install the OS for you",ru:"Не позволяйте VMware ставить ОС за вас"},
       en:"If you point the wizard at the ISO on that first screen, VMware triggers Easy Install: it silently auto-answers the entire installer with its own choices for username, password and partitioning. You get a machine you did not configure. Always choose to install the OS later and attach the ISO afterwards.",
@@ -382,13 +385,13 @@ const DECK = [
     {t:"p",en:"On the final wizard screen click <strong>Customize Hardware</strong>. If you already finished, reopen with <code class='inl'>VM → Settings</code>.",ru:"На последнем экране мастера нажмите <strong>Customize Hardware</strong>. Если мастер уже закрыт, откройте <code class='inl'>VM → Settings</code>."},
     {t:"list",items:[
       {en:"<strong>CD/DVD</strong> → Use ISO image file → select the 22.04.5 ISO → tick <strong>Connect at power on</strong>",ru:"<strong>CD/DVD</strong> → Use ISO image file → выберите образ 22.04.5 → отметьте <strong>Connect at power on</strong>"},
-      {en:"<strong>Network Adapter</strong> → confirm NAT, tick Connect at power on, <strong>untick</strong> Replicate physical network connection state",ru:"<strong>Network Adapter</strong> → убедитесь, что NAT, отметьте Connect at power on, <strong>снимите</strong> Replicate physical network connection state"},
+      {en:"<strong>Network Adapter</strong> → confirm <strong>NAT</strong> and tick <strong>Connect at power on</strong>",ru:"<strong>Network Adapter</strong> → убедитесь, что выбран <strong>NAT</strong>, и отметьте <strong>Connect at power on</strong>"},
       {en:"<strong>Remove</strong> Sound Card, Printer and USB Controller",ru:"<strong>Удалите</strong> Sound Card, Printer и USB Controller"},
       {en:"<strong>Display</strong> → untick Accelerate 3D graphics",ru:"<strong>Display</strong> → снимите Accelerate 3D graphics"}
     ]},
-    {t:"tip",title:{en:"That one unticked box saves you a two-minute boot hang",ru:"Одна снятая галочка избавит от двухминутного зависания при загрузке"},
-      en:"Replicate physical network connection state drops the guest's virtual link whenever the host adapter blips — which Wi-Fi does constantly. The guest then boots with no carrier, and systemd-networkd-wait-online blocks startup for two full minutes before giving up.",
-      ru:"Replicate physical network connection state сбрасывает виртуальный линк гостя при каждом кратком сбое адаптера хоста — а Wi-Fi делает это постоянно. Гость загружается без несущей, и systemd-networkd-wait-online блокирует запуск на две минуты, прежде чем сдаться."},
+    {t:"tip",title:{en:"Only if you chose Bridged",ru:"Только если вы выбрали Bridged"},
+      en:"Under <strong>Bridged</strong> there is a box called <strong>Replicate physical network connection state</strong>. Untick it on a laptop: when Wi-Fi drops for a moment, it unplugs the guest's virtual cable, and the next boot waits two minutes for a network that never comes. With NAT this box is greyed out and does not matter.",
+      ru:"У режима <strong>Bridged</strong> есть галочка <strong>Replicate physical network connection state</strong>. На ноутбуке снимите её: когда Wi-Fi на миг пропадает, она «выдёргивает» виртуальный кабель гостя, и следующая загрузка две минуты ждёт сеть, которой нет. В режиме NAT эта галочка неактивна и ни на что не влияет."},
     {t:"p",en:"Now power on the VM. Click inside the window to capture your keyboard; <strong>Ctrl+Alt</strong> releases it back to the host.",ru:"Теперь включите ВМ. Кликните внутри окна, чтобы захватить клавиатуру; <strong>Ctrl+Alt</strong> возвращает её хосту."}
   ]
 },
@@ -424,7 +427,7 @@ const DECK = [
   eyebrow:{en:"Step 06 · the important one",ru:"Шаг 06 · самый важный"},
   title:{en:"Set the static IP now, inside the installer",ru:"Задайте статический IP прямо в установщике"},
   blocks:[
-    {t:"p",en:"You will see <code class='inl'>ens33</code> with a DHCP address already assigned. Highlight it → <strong>Enter</strong> → <strong>Edit IPv4</strong> → change method from Automatic (DHCP) to <strong>Manual</strong>.",ru:"Вы увидите <code class='inl'>ens33</code> с уже полученным адресом DHCP. Выделите его → <strong>Enter</strong> → <strong>Edit IPv4</strong> → смените метод с Automatic (DHCP) на <strong>Manual</strong>."},
+    {t:"p",en:"You will see <code class='inl'>ens33</code> (the name can differ, for example <code class='inl'>ens160</code>; then use that name everywhere this guide says ens33) with a DHCP address already assigned. Highlight it → <strong>Enter</strong> → <strong>Edit IPv4</strong> → change method from Automatic (DHCP) to <strong>Manual</strong>.",ru:"Вы увидите <code class='inl'>ens33</code> (имя может отличаться, например <code class='inl'>ens160</code>; тогда используйте его везде, где в руководстве написано ens33) с уже полученным адресом DHCP. Выделите его → <strong>Enter</strong> → <strong>Edit IPv4</strong> → смените метод с Automatic (DHCP) на <strong>Manual</strong>."},
     {t:"cmd",tag:{en:"Fill in — substitute your own subnet",ru:"Заполните — подставьте свою подсеть"},lines:[
       "Subnet:         192.168.81.0/24",
       "Address:        192.168.81.50",
@@ -438,8 +441,8 @@ const DECK = [
       {en:"<strong>Name servers</strong> are comma separated with no spaces",ru:"<strong>Name servers</strong> перечисляются через запятую без пробелов"}
     ]},
     {t:"ok",title:{en:"Why here and not later",ru:"Почему здесь, а не потом"},
-      en:"When you set a static address in the installer, subiquity writes the netplan config and also disables cloud-init's network management for you. Configure it after installation instead and cloud-init stays in charge — it keeps writing its own DHCP config that merges with yours, leaving the interface with two addresses. Doing it here removes that entire class of problem.",
-      ru:"Когда вы задаёте статический адрес в установщике, subiquity записывает конфигурацию netplan и заодно отключает управление сетью со стороны cloud-init. Если настроить сеть после установки, cloud-init останется главным — он продолжит писать свой DHCP-конфиг, который сольётся с вашим, и на интерфейсе окажется два адреса. Настройка здесь снимает весь этот класс проблем."},
+      en:"The installer writes your settings into one netplan file, <code class='inl'>/etc/netplan/00-installer-config.yaml</code>, and turns off cloud-init's network handling. You get the right address from the first boot and have nothing to edit later. Most duplicate-address problems come from editing network files by hand after installation and leaving an old DHCP file behind.",
+      ru:"Установщик записывает ваши настройки в один файл netplan, <code class='inl'>/etc/netplan/00-installer-config.yaml</code>, и отключает управление сетью со стороны cloud-init. Правильный адрес есть с первой загрузки, и потом ничего не нужно править. Почти все проблемы с двумя адресами возникают, когда сетевые файлы правят вручную после установки и оставляют старый DHCP-файл."},
     {t:"p",en:"Save, then confirm the interface line now reads <strong>static</strong> rather than DHCPv4 before you continue.",ru:"Сохраните и убедитесь, что в строке интерфейса теперь написано <strong>static</strong>, а не DHCPv4, прежде чем продолжать."}
   ]
 },
@@ -498,7 +501,7 @@ const DECK = [
     {t:"cmd",tag:{en:"Profile setup",ru:"Настройка профиля"},lines:[
       "Your name:           <your name>",
       "Your server's name:  ubuntu-server      # hostname, lowercase, no spaces",
-      "Pick a username:     admin              # this account gets sudo",
+      "Pick a username:     labadmin           # gets sudo; the name admin is refused",
       "Password:            ****************"
     ]},
     {t:"p",en:"<strong>Ubuntu Pro:</strong> Skip for now.",ru:"<strong>Ubuntu Pro:</strong> Skip for now."},
@@ -517,7 +520,7 @@ const DECK = [
   title:{en:"Let it finish, then reboot",ru:"Дождитесь конца и перезагрузитесь"},
   blocks:[
     {t:"p",en:"Installation takes five to twenty minutes. It will appear to stall on “Downloading and installing security updates” near the end — let it run. <strong>View full log</strong> shows what it is actually doing.",ru:"Установка занимает от пяти до двадцати минут. Ближе к концу она словно застрянет на «Downloading and installing security updates» — дайте ей доработать. <strong>View full log</strong> покажет, что происходит на самом деле."},
-    {t:"p",en:"Choose <strong>Reboot Now</strong>. You will get a prompt asking you to remove the installation medium — in most cases you can simply press <strong>Enter</strong>. VMware releases the virtual disc itself and the machine boots straight into the installed system.",ru:"Выберите <strong>Reboot Now</strong>. Появится запрос об извлечении установочного носителя — в большинстве случаев достаточно нажать <strong>Enter</strong>. VMware сама освободит виртуальный диск, и машина загрузится в установленную систему."},
+    {t:"p",en:"Choose <strong>Reboot Now</strong>. You will get a prompt asking you to remove the installation medium — in most cases you can simply press <strong>Enter</strong>. The installer ejects the virtual disc and the machine boots straight into the installed system.",ru:"Выберите <strong>Reboot Now</strong>. Появится запрос об извлечении установочного носителя — в большинстве случаев достаточно нажать <strong>Enter</strong>. Установщик извлечёт виртуальный диск, и машина загрузится в установленную систему."},
     {t:"ok",title:{en:"“Failed unmounting /cdrom” is cosmetic",ru:"«Failed unmounting /cdrom» — косметика"},
       en:"The installer wanted to unmount the ISO before shutting down and could not. Every Ubuntu install prints this. It does not affect the installed system.",
       ru:"Установщик хотел отмонтировать образ перед выключением и не смог. Это печатает каждая установка Ubuntu. На установленную систему это не влияет."},
@@ -559,7 +562,7 @@ const DECK = [
     {t:"tip",title:{en:"Fix the timezone while you are here",ru:"Заодно поправьте часовой пояс"},
       en:"Clock skew between a server and the machines reporting to it makes correlating events genuinely confusing later.",
       ru:"Расхождение часов между сервером и машинами, которые ему отчитываются, потом сильно затрудняет сопоставление событий."},
-    {t:"cmd",tag:{en:"Timezone",ru:"Часовой пояс"},lines:["timedatectl","sudo timedatectl list-timezones | grep -i <city>","sudo timedatectl set-timezone Region/City"]}
+    {t:"cmd",tag:{en:"Timezone",ru:"Часовой пояс"},lines:["timedatectl","timedatectl list-timezones | grep -i <city>","sudo timedatectl set-timezone Region/City"]}
   ]
 },
 
@@ -579,9 +582,16 @@ const DECK = [
     ]},
     {t:"p",en:"Two commands because LVM and the filesystem are separate layers: <strong>lvextend</strong> grows the block device, <strong>resize2fs</strong> grows ext4 into the new space. Both run online — no unmount, no reboot.",ru:"Две команды, потому что LVM и файловая система — разные уровни: <strong>lvextend</strong> увеличивает блочное устройство, <strong>resize2fs</strong> расширяет ext4 на новое место. Обе работают на живой системе — без размонтирования и перезагрузки."},
     {t:"tip",title:{en:"If you expand the virtual disk later",ru:"Если позже увеличите виртуальный диск"},
-      en:"Growing the disk in VMware requires the VM powered off with no snapshots. After booting you need an extra first step — growpart to extend the partition — before lvextend can see the new space.",
-      ru:"Увеличение диска в VMware требует выключенной ВМ без снимков. После загрузки нужен дополнительный первый шаг — growpart для расширения раздела — прежде чем lvextend увидит новое место."},
-    {t:"cmd",tag:{en:"After expanding the virtual disk",ru:"После увеличения виртуального диска"},lines:[
+      en:"Growing the disk in VMware requires the VM powered off with no snapshots. After booting, first grow the partition with growpart, then the filesystem. Run <code class='inl'>lsblk</code> first and check the disk name (<code class='inl'>sda</code> here) and the partition number. Use the block that matches your layout.",
+      ru:"Увеличение диска в VMware требует выключенной ВМ без снимков. После загрузки сначала увеличьте раздел через growpart, затем файловую систему. Сначала выполните <code class='inl'>lsblk</code> и проверьте имя диска (здесь <code class='inl'>sda</code>) и номер раздела. Используйте блок, который подходит к вашей разметке."},
+    {t:"cmd",tag:{en:"Without LVM (the layout step 08 recommends)",ru:"Без LVM (разметка, рекомендованная в шаге 08)"},lines:[
+      "lsblk                       # root is usually sda2",
+      "sudo growpart /dev/sda 2",
+      "sudo resize2fs /dev/sda2",
+      "df -h /"
+    ]},
+    {t:"cmd",tag:{en:"With LVM",ru:"С LVM"},lines:[
+      "lsblk                       # the LVM partition is usually sda3",
       "sudo growpart /dev/sda 3",
       "sudo pvresize /dev/sda3",
       "sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv",
@@ -599,13 +609,20 @@ const DECK = [
   blocks:[
     {t:"p",en:"If you set the static address in the installer as instructed, this is already correct and you can skip ahead. Check anyway — it takes three seconds and the failure mode is subtle.",ru:"Если вы задали статический адрес в установщике, как описано, здесь уже всё правильно и можно идти дальше. Всё равно проверьте — это три секунды, а проявляется проблема неочевидно."},
     {t:"cmd",tag:{en:"Check",ru:"Проверка"},lines:["ip -br a","ls -l /etc/netplan/"]},
-    {t:"p",en:"You want <strong>one address</strong> on ens33 and <strong>one file</strong> in the netplan directory. If you see a second address marked <code class='inl'>dynamic</code>, or a file named <code class='inl'>50-cloud-init.yaml</code>, apply the fix below.",ru:"Нужен <strong>один адрес</strong> на ens33 и <strong>один файл</strong> в каталоге netplan. Если видите второй адрес с пометкой <code class='inl'>dynamic</code> или файл <code class='inl'>50-cloud-init.yaml</code>, примените исправление ниже."},
-    {t:"cmd",tag:{en:"Disable cloud-init networking",ru:"Отключить управление сетью cloud-init"},lines:[
+    {t:"p",en:"You want <strong>one address</strong> on ens33 and <strong>one file</strong>, <code class='inl'>00-installer-config.yaml</code>, in the netplan directory. Only if you see a second address marked <code class='inl'>dynamic</code> <strong>and</strong> there are two files, use the fix below.",ru:"Нужен <strong>один адрес</strong> на ens33 и <strong>один файл</strong>, <code class='inl'>00-installer-config.yaml</code>, в каталоге netplan. Исправление ниже нужно, только если есть второй адрес с пометкой <code class='inl'>dynamic</code> <strong>и</strong> файлов два."},
+    {t:"warn",title:{en:"Never delete the only netplan file",ru:"Никогда не удаляйте единственный файл netplan"},
+      en:"If <code class='inl'>50-cloud-init.yaml</code> is the <strong>only</strong> file and <code class='inl'>sudo cat</code> shows your static address in it, it is your real config. Keep it and skip the <code class='inl'>rm</code> line. Deleting it leaves the server with no address at all.",
+      ru:"Если <code class='inl'>50-cloud-init.yaml</code> — <strong>единственный</strong> файл и <code class='inl'>sudo cat</code> показывает в нём ваш статический адрес, это и есть ваша настоящая конфигурация. Оставьте его и пропустите строку <code class='inl'>rm</code>. Если удалить его, у сервера не останется ни одного адреса."},
+    {t:"cmd",tag:{en:"Only with two files: disable cloud-init networking",ru:"Только при двух файлах: отключить сеть cloud-init"},lines:[
+      "sudo cat /etc/netplan/*.yaml         # confirm 00-installer-config.yaml holds your static address",
       "echo \"network: {config: disabled}\" | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg",
       "sudo rm -f /etc/netplan/50-cloud-init.yaml",
       "sudo netplan apply",
       "ip -br a"
     ]},
+    {t:"tip",title:{en:"Netplan says permissions are too open",ru:"Netplan пишет, что права слишком открыты"},
+      en:"On 22.04 the installer creates the netplan file readable by everyone, so <code class='inl'>netplan apply</code> prints a warning. It is harmless, but fix it once with <code class='inl'>sudo chmod 600 /etc/netplan/*.yaml</code>.",
+      ru:"В 22.04 установщик создаёт файл netplan, доступный для чтения всем, поэтому <code class='inl'>netplan apply</code> выдаёт предупреждение. Оно безвредно, но исправьте его один раз: <code class='inl'>sudo chmod 600 /etc/netplan/*.yaml</code>."},
     {t:"warn",title:{en:"Why deleting the file alone is not enough",ru:"Почему удалить файл недостаточно"},
       en:"Netplan merges every yaml in its directory rather than picking a winner, so a cloud-init file requesting DHCP and your file requesting static both get applied. And cloud-init regenerates its file on every boot — the 99-disable file is what actually stops it coming back.",
       ru:"Netplan объединяет все yaml-файлы в своём каталоге, а не выбирает один, поэтому применяются и файл cloud-init с DHCP, и ваш со статикой. К тому же cloud-init заново создаёт свой файл при каждой загрузке — именно файл 99-disable не даёт ему вернуться."}
@@ -629,9 +646,9 @@ const DECK = [
     ]},
     {t:"p",en:"If the output mentions a pending kernel upgrade, reboot to load it:",ru:"Если в выводе упомянуто ожидающее обновление ядра, перезагрузитесь, чтобы его загрузить:"},
     {t:"cmd",tag:{en:"Reboot",ru:"Перезагрузка"},lines:["sudo reboot","","# after it comes back:","uname -r"]},
-    {t:"ok",title:{en:"“Not Upgrading: 2” is normal",ru:"«Not Upgrading: 2» — это нормально"},
-      en:"Some packages get held back by phased updates or a dependency that has not landed yet. Running full-upgrade rather than plain upgrade clears most of them.",
-      ru:"Некоторые пакеты удерживаются из-за поэтапного выката или ещё не появившейся зависимости. Команда full-upgrade вместо обычного upgrade убирает большинство из них."}
+    {t:"ok",title:{en:"“kept back” packages are normal",ru:"Пакеты «kept back» — это нормально"},
+      en:"Ubuntu rolls some updates out to machines in stages (phased updates). Those packages show as kept back for a few days and then install on their own. Nothing to fix, and do not force them.",
+      ru:"Ubuntu выкатывает некоторые обновления на машины поэтапно (phased updates). Такие пакеты несколько дней показываются как kept back, а потом ставятся сами. Исправлять ничего не нужно, и не устанавливайте их принудительно."}
   ]
 },
 
@@ -642,7 +659,7 @@ const DECK = [
   eyebrow:{en:"Step 15",ru:"Шаг 15"},
   title:{en:"Get off the VMware console",ru:"Уйдите с консоли VMware"},
   blocks:[
-    {t:"cmd",tag:{en:"From the host terminal",ru:"Из терминала хоста"},lines:["ssh admin@192.168.81.50"]},
+    {t:"cmd",tag:{en:"From the host terminal",ru:"Из терминала хоста"},lines:["ssh labadmin@192.168.81.50"]},
     {t:"p",en:"Type <strong>yes</strong> to accept the host key the first time. From here on you have copy-paste, scrollback, a readable font and a resizable window. Do everything else from this session.",ru:"В первый раз введите <strong>yes</strong>, чтобы принять ключ хоста. Дальше у вас есть копирование, прокрутка, читаемый шрифт и изменяемое окно. Всю остальную работу делайте отсюда."},
     {t:"warn",title:{en:"REMOTE HOST IDENTIFICATION HAS CHANGED",ru:"REMOTE HOST IDENTIFICATION HAS CHANGED"},
       en:"You will hit this whenever you rebuild a VM or reuse an IP address — the new machine has new host keys, and SSH correctly refuses to connect silently. Clear the cached entry and reconnect.",
@@ -662,12 +679,13 @@ const DECK = [
   title:{en:"Key-based login and a basic firewall",ru:"Вход по ключу и базовый файрвол"},
   blocks:[
     {t:"p",en:"Generate a key on the <strong>host</strong> and copy the public half to the server. After this you log in without typing a password.",ru:"Сгенерируйте ключ на <strong>хосте</strong> и скопируйте публичную часть на сервер. После этого вход будет без ввода пароля."},
-    {t:"cmd",tag:{en:"On the host",ru:"На хосте"},lines:[
+    {t:"cmd",tag:{en:"Windows host · PowerShell",ru:"Хост Windows · PowerShell"},lines:[
+      "ssh-keygen -t ed25519            # press Enter to accept the defaults",
+      "type $env:USERPROFILE\\.ssh\\id_ed25519.pub | ssh labadmin@192.168.81.50 \"mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys\""
+    ]},
+    {t:"cmd",tag:{en:"macOS or Linux host",ru:"Хост macOS или Linux"},lines:[
       "ssh-keygen -t ed25519",
-      "ssh-copy-id admin@192.168.81.50",
-      "",
-      "# Windows without ssh-copy-id:",
-      "type $env:USERPROFILE\\.ssh\\id_ed25519.pub | ssh admin@192.168.81.50 \"mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys\""
+      "ssh-copy-id labadmin@192.168.81.50"
     ]},
     {t:"warn",title:{en:"Test the key before disabling passwords",ru:"Проверьте ключ перед отключением паролей"},
       en:"Open a second terminal and confirm key login works while your existing session is still open. If you disable password authentication and the key is not working, you have locked yourself out of everything except the VMware console.",
@@ -677,7 +695,17 @@ const DECK = [
       "sudo ufw enable",
       "sudo ufw status verbose"
     ]},
-    {t:"p",en:"The order there is not optional. Enabling ufw before allowing SSH cuts your own connection immediately.",ru:"Порядок здесь принципиален. Включение ufw до разрешения SSH мгновенно обрывает ваше же соединение."}
+    {t:"p",en:"The order there is not optional. Enabling ufw before allowing SSH cuts your own connection immediately.",ru:"Порядок здесь принципиален. Включение ufw до разрешения SSH мгновенно обрывает ваше же соединение."},
+    {t:"warn",title:{en:"Installing Wazuh on this server? Open its ports too",ru:"Будете ставить Wazuh? Откройте и его порты"},
+      en:"With only SSH allowed, ufw blocks the Wazuh dashboard, the agents and pfSense syslog. Everything looks installed, but no agent connects and the dashboard never loads. Add these rules before installing Wazuh. In the SOC lab pfSense already filters traffic, so you can also leave ufw off.",
+      ru:"Если разрешён только SSH, ufw блокирует дашборд Wazuh, агентов и syslog от pfSense. Всё выглядит установленным, но ни один агент не подключается, а дашборд не открывается. Добавьте эти правила до установки Wazuh. В SOC-лаборатории трафик уже фильтрует pfSense, поэтому ufw можно и не включать."},
+    {t:"cmd",tag:{en:"Wazuh ports",ru:"Порты Wazuh"},lines:[
+      "sudo ufw allow 443/tcp     # dashboard",
+      "sudo ufw allow 1514/tcp    # agent events",
+      "sudo ufw allow 1515/tcp    # agent enrollment",
+      "sudo ufw allow 514/udp     # syslog from pfSense",
+      "sudo ufw status numbered"
+    ]}
   ]
 },
 
@@ -708,7 +736,7 @@ const DECK = [
   title:{en:"When something goes wrong",ru:"Когда что-то пошло не так"},
   blocks:[
     {t:"tbl",rows:[
-      {k:{en:"NO-CARRIER, state DOWN",ru:"NO-CARRIER, state DOWN"},v:{en:"Virtual cable unplugged. VM Settings → Network Adapter → tick Connected. Untick Replicate physical network connection state.",ru:"Виртуальный кабель отключён. VM Settings → Network Adapter → отметьте Connected. Снимите Replicate physical network connection state."}},
+      {k:{en:"NO-CARRIER, state DOWN",ru:"NO-CARRIER, state DOWN"},v:{en:"Virtual cable unplugged. VM Settings → Network Adapter → tick Connected and Connect at power on. On Bridged, also untick Replicate physical network connection state.",ru:"Виртуальный кабель отключён. VM Settings → Network Adapter → отметьте Connected и Connect at power on. В режиме Bridged также снимите Replicate physical network connection state."}},
       {k:{en:"Destination Host Unreachable",ru:"Destination Host Unreachable"},v:{en:"Your address is in a subnet that does not exist here. Compare against the host's own IP.",ru:"Ваш адрес в подсети, которой здесь нет. Сравните с собственным IP хоста."}},
       {k:{en:"Temporary failure resolving",ru:"Temporary failure resolving"},v:{en:"DNS only. Gateway is reachable but name servers are wrong or missing from netplan.",ru:"Только DNS. Шлюз доступен, но DNS-серверы неверны или отсутствуют в netplan."}},
       {k:{en:"Boot hangs on wait-online",ru:"Загрузка висит на wait-online"},v:{en:"Symptom of no carrier. It gives up after two minutes. Fix the adapter, or mask the service.",ru:"Симптом отсутствия несущей. Сдаётся через две минуты. Исправьте адаптер или замаскируйте службу."}},
